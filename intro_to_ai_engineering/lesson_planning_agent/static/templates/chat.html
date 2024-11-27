@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChatGPT-like Interface</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        /* First, ensure html and body take exactly the window height without scroll */
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            overflow: hidden;  /* Prevents scroll in body */
+        }
+
+        /* Chat container will handle all scrolling */
+        .chat-container {
+            position: relative;
+            height: 100vh;
+            overflow-y: auto;
+            padding-bottom: 80px;  /* Space for input */
+        }
+
+        /* Ensure input container stays fixed */
+        .input-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            background-color: #343541;
+        }
+
+        .input-group {
+            width: 90%;
+            max-width: 800px;
+            background-color: #40414f;
+            border-radius: 8px;
+            padding: 10px;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+        }
+
+        body {
+            background-color: #343541;
+            color: #ECECF1;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            position: relative;
+        }
+        
+        .chat-container {
+            position: relative;
+            min-height: 100vh;
+            padding-bottom: 80px;
+            overflow-y: auto;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            scroll-behavior: smooth;
+        }
+
+        .message {
+            padding: 1rem;
+            margin: 1rem auto;
+            max-width: 90%;
+            width: fit-content;
+        }
+
+        .user-message {
+            background-color: #2A2B32;
+            border-radius: 0.75rem;
+            padding: 0.35rem 0.5rem;
+            margin-right: 30%;
+            width: fit-content;
+            margin-left: auto;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .assistant-message {
+            margin-left: 30%;
+            margin-right: 30%;
+            text-align: left;
+            background: transparent;
+        }
+
+        /* Remove previous dividing lines */
+        .message::before,
+        .message::after {
+            display: none;
+        }
+
+        /* Adjust message content */
+        .message-content {
+            padding: 0;
+            margin: 0;
+            line-height: 1.4;
+        }
+
+        .input-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            background-color: #343541;
+        }
+
+        .input-group {
+            width: 90%;
+            max-width: 800px;
+            background-color: #40414f;
+            border-radius: 8px;
+            padding: 10px;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+        }
+
+        .upload-btn, .send-btn {
+            background: transparent;
+            border: none;
+            color: #fff;
+            padding: 4px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        .upload-btn {
+            margin-right: 8px;
+        }
+
+        .upload-btn:hover, .send-btn:hover {
+            opacity: 0.8;
+        }
+
+        .upload-btn::before, .send-btn::before {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 5px 10px;
+            background-color: #2A2B32;
+            color: #ECECF1;
+            border-radius: 4px;
+            font-size: 12px;
+            white-space: nowrap;
+            visibility: hidden;
+            opacity: 0;
+            transition: opacity 0.2s;
+            margin-bottom: 5px;
+        }
+
+        .upload-btn::before {
+            content: "Upload a document";
+        }
+
+        .send-btn::before {
+            content: "Send message";
+        }
+
+        .upload-btn:hover::before, .send-btn:hover::before {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        #file-input {
+            display: none;
+        }
+
+        .form-control {
+            flex: 1;
+            background-color: transparent;
+            border: none;
+            color: white;
+            resize: none;
+            padding: 0;
+            margin: 0;
+            min-height: 24px;
+            max-height: 200px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .form-control::placeholder {
+            color: #8e8ea0;
+            opacity: 1;
+        }
+
+        .form-control:focus {
+            outline: none;
+            box-shadow: none;
+            border: none;
+            background-color: transparent;
+            color: white;
+        }
+
+        .form-control:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            background-color: transparent;
+        }
+
+        .btn-primary {
+            background-color: transparent;
+            border: none;
+            color: #ECECF1;
+            padding: 8px;
+        }
+
+        .btn-primary:hover {
+            background-color: transparent;
+            color: #ECECF1;
+        }
+
+        .btn-primary:focus {
+            box-shadow: none;
+        }
+
+        /* Hide scrollbar but keep functionality */
+        .chat-box::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .chat-box::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .chat-box::-webkit-scrollbar-thumb {
+            background-color: rgba(255,255,255,0.1);
+            border-radius: 4px;
+        }
+
+        .message-content {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: inherit;
+            border-radius: 8px;
+            padding: 12px;
+        }
+
+        .message.user .message-content {
+            background-color: #343541;
+        }
+
+        .message.assistant .message-content {
+            background-color: #444654;
+        }
+
+        .chat-title {
+            position: fixed;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 20px;
+            padding: 1rem;
+            z-index: 1000;
+            color: white;
+            font-weight: 500;
+            left: 5%;
+            top: 1rem;
+        }
+
+        .chat-title svg {
+            width: 12px;
+            height: 12px;
+            margin-left: 5px;
+            fill: currentColor;
+        }
+
+        .upload-btn.file-selected {
+            color: #10a37f;  /* O el color que prefieras para indicar que hay un archivo seleccionado */
+        }
+
+        .upload-btn.file-selected:hover::before {
+            content: attr(data-filename);  /* Si quieres mostrar el nombre del archivo en el tooltip */
+        }
+
+        .file-message {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .file-icon {
+            display: flex;
+            align-items: center;
+            color: #8e8ea0;
+        }
+
+        .file-icon svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        .message-text {
+            margin-top: 4px;
+        }
+
+        .send-btn.loading {
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .send-btn.loading:hover {
+            opacity: 0.7;
+        }
+
+        .send-btn.loading::before {
+            content: "Stop generating";
+        }
+
+        .message-content h2 {
+            font-size: 1.5em;
+            font-weight: 600;
+            color: #fff;
+            margin: 1em 0 0.5em 0;
+        }
+
+        .message-content strong {
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .message-content p {
+            white-space: pre-wrap;
+            margin: 0;
+            line-height: 1.5;
+        }
+
+        .model-selector {
+            position: fixed;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 10px;
+            z-index: 1000;
+        }
+
+        .model-dropdown {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background-color: #202123;
+            min-width: 200px;
+            border-radius: 6px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+            z-index: 1000;
+            margin-top: 5px;
+        }
+
+        .model-dropdown.show {
+            display: block;
+        }
+
+        .model-option {
+            padding: 8px 16px;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .model-option:hover {
+            background-color: #343541;
+        }
+
+        /* Ensure user message content is visible */
+        .user-message .message-content {
+            color: #FFFFFF;
+        }
+
+        /* Base styles for large screens */
+        .message {
+            max-width: 90%;
+            margin: 1rem auto;
+        }
+
+        .assistant-message {
+            margin-left: 30%;
+            margin-right: 30%;
+            text-align: left;
+        }
+
+        .user-message {
+            background-color: #2A2B32;
+            border-radius: 0.75rem;
+            padding: 0.35rem 0.5rem;
+            margin-right: 30%;
+            width: fit-content;
+            margin-left: auto;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Media queries for different screen sizes */
+        @media screen and (max-width: 1200px) {
+            .assistant-message {
+                margin-left: 25%;
+                margin-right: 25%;
+            }
+            .user-message {
+                margin-right: 25%;
+                margin-left: auto;
+            }
+        }
+
+        @media screen and (max-width: 992px) {
+            .assistant-message {
+                margin-left: 20%;
+                margin-right: 20%;
+            }
+            .user-message {
+                margin-right: 20%;
+                margin-left: auto;
+            }
+        }
+
+        @media screen and (max-width: 768px) {
+            .assistant-message {
+                margin-left: 15%;
+                margin-right: 15%;
+            }
+            .user-message {
+                margin-right: 15%;
+                margin-left: auto;
+            }
+            .chat-title {
+                position: fixed;
+                left: 0;
+                top: 0;
+                width: 100%;
+                background-color: #343541;
+                border-bottom: 1px solid #4d4d4f;
+                padding: 1rem;
+                margin: 0;
+                box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                font-size: 20px;
+            }
+
+            .chat-container {
+                margin-top: 0;
+                padding-top: 4rem;
+                padding-bottom: 80px;
+            }
+
+            .input-box {
+                width: 95%;
+                bottom: 10px;
+            }
+        }
+
+        @media screen and (max-width: 576px) {
+            .assistant-message {
+                margin-left: 5%;
+                margin-right: 5%;
+            }
+            .user-message {
+                margin-right: 5%;
+                margin-left: auto;
+            }
+        }
+
+        @media screen and (max-width: 400px) {
+            .assistant-message {
+                margin-left: 2%;
+                margin-right: 2%;
+            }
+            .user-message {
+                margin-right: 2%;
+                margin-left: auto;
+            }
+        }
+
+        .input-box {
+            position: absolute;
+            bottom: -20px;
+            left: 0;
+            right: 0;
+            background-color: #343541;
+            padding: 12px;
+            width: 100%;
+        }
+
+        .chat-container {
+            margin-top: 5%;
+            padding-bottom: 80px;
+            height: calc(100vh - 80px);
+            overflow-y: auto;
+        }
+
+        /* First, ensure main container takes full height */
+        .main-container {
+            position: relative;
+            height: 100vh;           /* Full window height */
+            display: flex;           /* Use flexbox */
+            flex-direction: column;  /* Vertical direction */
+        }
+
+        .chat-container {
+            flex: 1;                 /* Takes the remaining space */
+            margin-top: 5%;
+            overflow-y: auto;        /* Scroll only for chat */
+            padding-bottom: 100px;   /* Space for input */
+        }
+
+        .input-box {
+            position: fixed;         /* Back to fixed to ensure position */
+            bottom: 0;              /* Attached to the bottom */
+            left: 0;
+            right: 0;
+            background-color: #343541;
+            padding: 12px 0;        /* Vertical padding only */
+            border-top: 1px solid #4d4d4f;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-title">
+        ChatGPT 4o
+        <svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" height="16" width="16"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        <div class="model-dropdown">
+            <div class="model-option" data-model="gpt-4o">GPT-4o</div>
+            <div class="model-option" data-model="gpt-4o-2024-11-20">GPT-4o (Nov 2024)</div>
+            <div class="model-option" data-model="gpt-4o-2024-08-06">GPT-4o (Aug 2024)</div>
+            <div class="model-option" data-model="gpt-4o-2024-05-13">GPT-4o (May 2024)</div>
+            <div class="model-option" data-model="chatgpt-4o-latest">ChatGPT-4o Latest</div>
+            <div class="model-option" data-model="gpt-4o-mini">GPT-4o Mini</div>
+            <div class="model-option" data-model="gpt-4o-mini-2024-07-18">GPT-4o Mini (Jul 2024)</div>
+            <div class="model-option" data-model="gpt-3.5-turbo-0125">GPT-3.5 Turbo</div>
+        </div>
+    </div>
+    <div class="chat-container">
+        <div class="chat-messages"></div>
+        <div class="input-container">
+            <div class="input-group">
+                <button class="upload-btn" id="upload-btn">
+                    <svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" 
+                        stroke-linecap="round" stroke-linejoin="round" height="20" width="20">
+                        <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
+                    </svg>
+                </button>
+                <input type="file" id="file-input" />
+                <textarea id="user-input" class="form-control" 
+                    placeholder="Send a message..." rows="1"></textarea>
+                <button class="send-btn" id="send-button">
+                    <svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" 
+                        stroke-linecap="round" stroke-linejoin="round" height="20" width="20">
+                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="model-selector">
+        <select id="model-select" class="model-dropdown">
+            <option value="gpt-4o">GPT-4o</option>
+            <option value="gpt-4o-2024-11-20">GPT-4o (Nov 2024)</option>
+            <option value="gpt-4o-2024-08-06">GPT-4o (Aug 2024)</option>
+            <option value="gpt-4o-2024-05-13">GPT-4o (May 2024)</option>
+            <option value="chatgpt-4o-latest">GPT-4o Latest</option>
+            <option value="gpt-4o-mini">GPT-4o Mini</option>
+            <option value="gpt-4o-mini-2024-07-18">GPT-4o Mini (Jul 2024)</option>
+            <option value="gpt-3.5-turbo-0125">GPT-3.5 Turbo</option>
+        </select>
+    </div>
+
+    <script>
+        window.addEventListener('beforeunload', () => {
+            console.log('[BeforeUnload] Cleaning sessionId from localStorage');
+            localStorage.removeItem('chatSessionId');
+        });
+
+        const textarea = document.getElementById('user-input');
+        
+        function adjustTextareaHeight() {
+            textarea.style.height = 'auto';
+            textarea.style.height = (textarea.scrollHeight) + 'px';
+        }
+
+        textarea.addEventListener('input', adjustTextareaHeight);
+
+        class ChatManager {
+            constructor() {
+                try {
+                    this.sessionId = localStorage.getItem('chatSessionId') || this.generateSessionId();
+                    localStorage.setItem('chatSessionId', this.sessionId);
+                    this.uploadedFile = null;
+                    this.uploadedFileName = null;
+                    
+                    // Store DOM element references
+                    this.chatMessages = document.querySelector('.chat-messages');
+                    this.userInput = document.getElementById('user-input');
+                    this.sendButton = document.getElementById('send-button');
+                    this.uploadButton = document.getElementById('upload-btn');
+                    this.fileInput = document.getElementById('file-input');
+                    this.modelSelect = document.getElementById('model-select');
+
+                    // Verify that all elements exist
+                    if (!this.chatMessages) throw new Error('Chat messages container not found');
+                    if (!this.userInput) throw new Error('User input not found');
+                    if (!this.sendButton) throw new Error('Send button not found');
+                    if (!this.uploadButton) throw new Error('Upload button not found');
+                    if (!this.fileInput) throw new Error('File input not found');
+                    if (!this.modelSelect) throw new Error('Model select not found');
+
+                    this.isGenerating = false;  // New flag to control generation state
+                    this.initializeEventListeners();
+                    this.currentController = null; // To control request cancellation
+                    
+                    // Set default model
+                    this.currentModel = "gpt-4o";
+                } catch (e) {
+                    console.error('[ChatManager] Error in constructor:', e);
+                }
+            }
+
+            initializeEventListeners() {
+                // Upload button click
+                this.uploadButton.addEventListener('click', () => this.fileInput.click());
+
+                // File input change
+                this.fileInput.addEventListener('change', (event) => {
+                    const file = event.target.files[0];
+                    if (file) {
+                        this.uploadedFile = file;
+                        this.uploadedFileName = file.name;
+                        console.log('File uploaded:', file.name);
+                        this.uploadButton.classList.add('file-selected');
+                    }
+                });
+
+                // Send button click
+                this.sendButton.addEventListener('click', () => {
+                    if (this.isGenerating) {
+                        // If generating, cancel generation
+                        this.currentController?.abort();
+                        this.currentController = null;
+                        this.isGenerating = false;
+                        this.updateSendButton(false);
+                    } else {
+                        // If not generating, send new message
+                        this.sendMessage();
+                    }
+                });
+
+                // Enter key press
+                this.userInput.addEventListener('keydown', (event) => {
+                    if (event.key === 'Enter' && !event.shiftKey) {
+                        event.preventDefault();
+                        if (!this.isGenerating) {  // Only send if not generating
+                            this.sendMessage();
+                        }
+                    }
+                });
+
+                // Model dropdown
+                const chatTitle = document.querySelector('.chat-title');
+                const modelDropdown = document.querySelector('.model-dropdown');
+                
+                chatTitle.addEventListener('click', (e) => {
+                    modelDropdown.classList.toggle('show');
+                    e.stopPropagation();
+                });
+
+                // Close dropdown when clicked outside
+                document.addEventListener('click', () => {
+                    modelDropdown.classList.remove('show');
+                });
+
+                // Model selection
+                document.querySelectorAll('.model-option').forEach(option => {
+                    option.addEventListener('click', (e) => {
+                        const selectedModel = option.dataset.model;
+                        const modelName = option.textContent;
+                        
+                        // Update title
+                        chatTitle.firstChild.textContent = modelName;
+                        
+                        // Update selected model
+                        this.currentModel = selectedModel;
+                        
+                        // Close dropdown
+                        modelDropdown.classList.remove('show');
+                        e.stopPropagation();
+                    });
+                });
+            }
+
+            updateSendButton(isLoading = false) {
+                const sendButton = document.getElementById('send-button');
+                this.isGenerating = isLoading;  // Update state
+
+                if (isLoading) {
+                    sendButton.innerHTML = `
+                        <svg stroke="currentColor" fill="currentColor" stroke-width="2" viewBox="0 0 24 24" 
+                            stroke-linecap="round" stroke-linejoin="round" height="24" width="24">
+                            <circle cx="12" cy="12" r="10" fill="white"/>
+                            <rect x="8" y="8" width="8" height="8" fill="black"/>
+                        </svg>
+                    `;
+                    sendButton.classList.add('loading');
+                    // We don't disable the textarea
+                    this.userInput.placeholder = "Message will be sent after current generation...";
+                } else {
+                    sendButton.innerHTML = `
+                        <svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" 
+                            stroke-linecap="round" stroke-linejoin="round" height="20" width="20">
+                            <line x1="22" y1="2" x2="11" y2="13"></line>
+                            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                        </svg>
+                    `;
+                    sendButton.classList.remove('loading');
+                    this.userInput.placeholder = "Send a message...";
+                }
+            }
+
+            async sendMessage() {
+                const message = this.userInput.value.trim();
+                
+                if ((!message && !this.uploadedFile) || this.isGenerating) return;
+
+                try {
+                    this.currentController = new AbortController();
+                    this.updateSendButton(true);
+
+                    // Clear input after capturing the message
+                    const currentMessage = message;
+                    this.userInput.value = '';
+                    adjustTextareaHeight();
+
+                    // Create full message for backend
+                    const fullMessage = this.uploadedFile 
+                        ? `[Attached file: ${this.uploadedFileName}] ${currentMessage}`
+                        : currentMessage;
+
+                    // Show in chat with the appropriate format
+                    if (this.uploadedFile) {
+                        const messageContent = `
+                            <div class="file-message">
+                                <div class="file-icon">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                        <path d="M14 2V8H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                </div>
+                                ${currentMessage ? `<div class="message-text">${currentMessage}</div>` : ''}
+                            </div>
+                        `;
+                        this.addMessageToChat('user', messageContent, true);
+                    } else if (currentMessage) {
+                        this.addMessageToChat('user', currentMessage);
+                    }
+
+                    // Prepare message for backend
+                    const messageObj = {
+                        role: 'user',
+                        content: fullMessage,
+                        session_id: this.sessionId,
+                        model: this.currentModel  // Include selected model
+                    };
+
+                    // Send to backend with signal of AbortController
+                    const response = await fetch('/chat/completion', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(messageObj),
+                        signal: this.currentController.signal
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('Server response was not ok');
+                    }
+
+                    // Parse and show response
+                    const responseData = await response.json();
+                    if (responseData && responseData.content) {
+                        this.addMessageToChat('assistant', responseData.content);
+                    }
+
+                } catch (error) {
+                    if (error.name === 'AbortError') {
+                        console.log('Request cancelled');
+                    } else {
+                        console.error('Error:', error);
+                        this.addMessageToChat('assistant', 'Sorry, there was an error processing your message.');
+                    }
+                } finally {
+                    this.currentController = null;
+                    this.updateSendButton(false);
+                    this.uploadedFile = null;
+                    this.uploadedFileName = null;
+                    this.uploadButton.classList.remove('file-selected');
+                }
+            }
+
+            addMessageToChat(role, content, isHTML = false) {
+                if (!this.chatMessages) {
+                    console.error('Chat messages container not found');
+                    return;
+                }
+
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${role}-message`;
+
+                if (isHTML) {
+                    messageDiv.innerHTML = `
+                        <div class="message-content">
+                            ${content}
+                        </div>
+                    `;
+                } else {
+                    let formattedContent = content;
+                    
+                    // Process special format only if it's a user message
+                    if (role === 'assistant') {
+                        formattedContent = content
+                            // Process titles with # only when followed by text
+                            .replace(/#{1,3}\s+([^#\n]+?)(?:\n|$)/g, '<h2>$1</h2><br>')
+                            // Process text between ** ** for bold with two points
+                            .replace(/\*\*(.*?):\*\*/g, '<strong>$1:</strong><br>')  // First process those with :
+                            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')        // Then the normal ones
+                            // Process lines that start with - for bullets and add line break
+                            .replace(/- (.*?)(?:\n|$)/g, '• $1<br>')
+                            // Process numbered points and add line break
+                            .replace(/(\d+\.)\s+(.*?)(?=\d+\.|$)/gs, '$1 $2\n\n');
+                    }
+
+                    messageDiv.innerHTML = `
+                        <div class="message-content">
+                            <p>${formattedContent}</p>
+                        </div>
+                    `;
+                }
+                
+                this.chatMessages.appendChild(messageDiv);
+                this.scrollToBottom();
+            }
+
+            // Method dedicated to handle scrolling
+            scrollToBottom() {
+                const chatContainer = document.querySelector('.chat-container');
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
+
+            updateLastMessage(content) {
+                if (!this.chatMessages) {
+                    console.error('Chat messages container not found');
+                    return;
+                }
+
+                const lastMessage = this.chatMessages.lastElementChild;
+                if (lastMessage) {
+                    lastMessage.querySelector('p').textContent = content;
+                    this.scrollToBottom();
+                }
+            }
+
+            generateSessionId() {
+                return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                    const r = Math.random() * 16 | 0;
+                    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+                    return v.toString(16);
+                });
+            }
+        }
+
+        // Initialize ChatManager when the DOM is ready
+        document.addEventListener('DOMContentLoaded', () => {
+            window.chatManager = new ChatManager();
+        });
+
+        function scrollToBottomSmooth() {
+            const chatContainer = document.querySelector('.chat-container');
+            const targetPosition = chatContainer.scrollHeight;
+            
+            chatContainer.scrollTo({
+                top: targetPosition,
+                behavior: 'smooth'
+            });
+        }
+
+        function addMessage(message) {
+            // Lógica para añadir el mensaje al DOM
+            // ...
+
+            // Small timeout to ensure DOM has been updated
+            setTimeout(() => {
+                scrollToBottomSmooth();
+            }, 50);
+        }
+
+        // For initial load
+        window.addEventListener('load', scrollToBottomSmooth);
+    </script>
+</body>
+</html>
+
